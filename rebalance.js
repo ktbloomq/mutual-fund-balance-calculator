@@ -1,6 +1,7 @@
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 
-let currentBalance = [];
+let currentBalance = [{}];
+let spreadsheetElement;
 
 function col(obj, column) {
 	return obj.map(a => a[column]);
@@ -94,51 +95,62 @@ function invest(balance, amt, base, depth=0) {
 	return invest(updated_balance,remaining_amt*direction,base/10.0,depth+1)
 }
 
-
 window.addEventListener('load', function () {
 	const form = document.getElementById("form");
+	const downloadButton = document.getElementById("downloadButton");
+
+	spreadsheetElement = document.getElementById('spreadsheet');
+	let myJspreadsheet = jspreadsheet(spreadsheetElement, {
+		data:currentBalance,
+		columns: [
+			{ title: "Label" },
+			{ title: "Current Balance", type:'numeric', locale: 'en-US', options: { style:'currency', currency: 'USD', maximumFractionDigits: 2, minimumFractionDigits: 2 } },
+			{ title: "Target %", type:'numeric' },
+			{ title: "Sort", type:'numeric' },
+			{ title: "Initial",type:'numeric' },
+			{ title: "Additional", type:'numeric' },
+			{ title:"Buy/Sell", type: "number", readOnly:true, locale: 'en-US', options: { style:'currency', currency: 'USD', maximumFractionDigits: 2, minimumFractionDigits: 2 } },
+			{ title: "Percent", type:'numeric', readOnly:true, mask: "0.00%" },
+			{ title: "DeltaPercent", type:'numeric', readOnly:true, mask: "0.00%" },
+			{ title: "PercentToTarget", type:'numeric', readOnly:true, mask: "0.00%" },
+			{ title: "TotalInvestment", type:'numeric', readOnly:true, locale: 'en-US', options: { style:'currency', currency: 'USD', maximumFractionDigits: 2, minimumFractionDigits: 2 } },
+		]
+	});
+
 	form.addEventListener("submit", async (event) => {
 		event.preventDefault();
+		// console.log("jspreadsheet",myJspreadsheet.getJson());
 		const data = new FormData(event.target);
-		let inOut = parseFloat(data.get("investment")) - 10;
-		// let inOut = 1000000 - 10.01;
-		let parsed = d3.tsvParse(data.get("funds"))
+		let inOut = parseFloat(data.get("investment"));
+		let parsed = myJspreadsheet.getJson();
 		currentBalance = parsed.map((row,i) => {
 			const newRow = {
-				"Ticker":row.Ticker,
-				"Balance":parseFloat(row.Balance),
-				"Target":parseFloat(row.Target),
+				"Ticker":row[0],
+				"Balance":parseFloat(row[1]),
+				"Target":parseFloat(row[2]),
 				"Sort":parseInt(i),
-				"Initial":parseFloat(row.Initial),
-				"Additional":parseFloat(row.Additional)
+				"Initial":parseFloat(row[4]),
+				"Additional":parseFloat(row[5])
 			}
 			return newRow;
 		});
-	
+		
 		currentBalance.forEach((row) => {
-				row['Adjustment'] = 0.0
+			row['Adjustment'] = 0.0
 		});
 		
-		const target = document.getElementById('target');
-		target.textContent = '';
-		let result = invest(currentBalance, inOut, 1000000);
-		result.forEach(row => {
-				const newRow = document.createElement("tr");
-				newRow.innerHTML = `
-						<td>${row.Ticker}</td>
-						<td>${row.Balance}</td>
-						<td>${row.Target}</td>
-						<td>${row.Sort}</td>
-						<td>${row.Initial}</td>
-						<td>${row.Additional}</td>
-						<td>${row.Adjustment.toFixed(2)}</td>
-						<td>${row.Percent}</td>
-						<td>${row.DeltaPercent}</td>
-						<td>${row.PercentToTarget}</td>
-						<td>${row.TotalInvestment}</td>
-				`;
-				target.appendChild(newRow);
-		});
+		// spreadsheetElement.textContent = '';
+		currentBalance = invest(currentBalance, inOut, 1000000);
+		console.log("currentBalance", currentBalance);
+		myJspreadsheet.setData(currentBalance.map((row) => {
+			let newRow = [row.Ticker, row.Balance, row.Target, row.Sort, row.Initial, row.Additional, row.Adjustment, row.Percent, row.DeltaPercent, row.PercentToTarget, row.TotalInvestment];
+			return newRow;
+		}));
+		downloadButton.style.display = "unset";
 	});
 
+	downloadButton.addEventListener("click", (e) => {
+		let table = document.getElementsByClassName("jexcel")[0].outerHTML;
+		window.open('data:application/vnd.ms-excel,' + encodeURIComponent(table));
+	});
 });  

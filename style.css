@@ -1,0 +1,24 @@
+.jexcel {
+    width: 100%;
+    background-color: unset;
+}
+
+.jexcel > thead > tr > td {
+    background-color: unset;
+}
+
+.jexcel > tbody > tr > td:first-child {
+    background-color: unset;
+}
+
+.jexcel > tbody > tr.selected > td:first-child {
+    background-color: var(--bs-primary);
+}
+
+.jexcel > thead > tr > td.selected {
+    background-color: var(--bs-primary);
+}
+
+.jexcel > tbody > tr > td.readonly {
+    color: unset;
+}

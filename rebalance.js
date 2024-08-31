@@ -105,11 +105,11 @@ window.addEventListener('load', function () {
 		columns: [
 			{ title: "Label" },
 			{ title: "Current Balance", type:'numeric', locale: 'en-US', options: { style:'currency', currency: 'USD', maximumFractionDigits: 2, minimumFractionDigits: 2 } },
-			{ title: "Target %", type:'numeric' },
+			{ title: "Target %", type:'numeric', mask: "0.00%" },
 			{ title: "Sort", type:'numeric' },
 			{ title: "Initial",type:'numeric' },
 			{ title: "Additional", type:'numeric' },
-			{ title:"Buy/Sell", type: "number", readOnly:true, locale: 'en-US', options: { style:'currency', currency: 'USD', maximumFractionDigits: 2, minimumFractionDigits: 2 } },
+			{ title:"Buy/Sell", type: "numeric", readOnly:true, locale: 'en-US', options: { style:'currency', currency: 'USD', maximumFractionDigits: 2, minimumFractionDigits: 2 } },
 			{ title: "Percent", type:'numeric', readOnly:true, mask: "0.00%" },
 			{ title: "DeltaPercent", type:'numeric', readOnly:true, mask: "0.00%" },
 			{ title: "PercentToTarget", type:'numeric', readOnly:true, mask: "0.00%" },
@@ -126,8 +126,8 @@ window.addEventListener('load', function () {
 		currentBalance = parsed.map((row,i) => {
 			const newRow = {
 				"Ticker":row[0],
-				"Balance":parseFloat(row[1]),
-				"Target":parseFloat(row[2]),
+				"Balance":parseFloat(row[1].replace(/\$|,/g,'')),
+				"Target":parseFloat(row[2])/100,
 				"Sort":parseInt(i),
 				"Initial":parseFloat(row[4]),
 				"Additional":parseFloat(row[5])
@@ -143,7 +143,7 @@ window.addEventListener('load', function () {
 		currentBalance = invest(currentBalance, inOut, 1000000);
 		console.log("currentBalance", currentBalance);
 		myJspreadsheet.setData(currentBalance.map((row) => {
-			let newRow = [row.Ticker, row.Balance, row.Target, row.Sort, row.Initial, row.Additional, row.Adjustment, row.Percent, row.DeltaPercent, row.PercentToTarget, row.TotalInvestment];
+			let newRow = [row.Ticker, row.Balance.toString(), row.Target.toString(), row.Sort, row.Initial, row.Additional, row.Adjustment, row.Percent, row.DeltaPercent, row.PercentToTarget, row.TotalInvestment];
 			return newRow;
 		}));
 		downloadButton.style.display = "unset";

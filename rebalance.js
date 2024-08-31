@@ -1,6 +1,4 @@
-import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
-
-let currentBalance = [{}];
+let currentBalance = [];
 let spreadsheetElement;
 
 function col(obj, column) {
@@ -102,18 +100,12 @@ window.addEventListener('load', function () {
 	spreadsheetElement = document.getElementById('spreadsheet');
 	let myJspreadsheet = jspreadsheet(spreadsheetElement, {
 		data:currentBalance,
+		minDimensions:[4,1],
 		columns: [
 			{ title: "Label" },
 			{ title: "Current Balance", type:'numeric', locale: 'en-US', options: { style:'currency', currency: 'USD', maximumFractionDigits: 2, minimumFractionDigits: 2 } },
 			{ title: "Target %", type:'numeric', mask: "0.00%" },
-			{ title: "Sort", type:'numeric' },
-			{ title: "Initial",type:'numeric' },
-			{ title: "Additional", type:'numeric' },
 			{ title:"Buy/Sell", type: "numeric", readOnly:true, locale: 'en-US', options: { style:'currency', currency: 'USD', maximumFractionDigits: 2, minimumFractionDigits: 2 } },
-			{ title: "Percent", type:'numeric', readOnly:true, mask: "0.00%" },
-			{ title: "DeltaPercent", type:'numeric', readOnly:true, mask: "0.00%" },
-			{ title: "PercentToTarget", type:'numeric', readOnly:true, mask: "0.00%" },
-			{ title: "TotalInvestment", type:'numeric', readOnly:true, locale: 'en-US', options: { style:'currency', currency: 'USD', maximumFractionDigits: 2, minimumFractionDigits: 2 } },
 		]
 	});
 
@@ -122,31 +114,41 @@ window.addEventListener('load', function () {
 		// console.log("jspreadsheet",myJspreadsheet.getJson());
 		const data = new FormData(event.target);
 		let inOut = parseFloat(data.get("investment"));
-		let parsed = myJspreadsheet.getJson();
-		currentBalance = parsed.map((row,i) => {
-			const newRow = {
-				"Ticker":row[0],
-				"Balance":parseFloat(row[1].replace(/\$|,/g,'')),
-				"Target":parseFloat(row[2])/100,
-				"Sort":parseInt(i),
-				"Initial":parseFloat(row[4]),
-				"Additional":parseFloat(row[5])
+		let extracted = myJspreadsheet.getJson();
+		console.log("extracted", extracted);
+		let isValid = true;
+		currentBalance = [];
+		extracted.forEach((row, i) => {
+			if(!(row[0]===""&&row[1]===""&&row[2]==="")) {
+				const newRow = {
+					"Ticker":row[0],
+					"Balance":parseFloat(row[1].replace(/\$|,/g,'')),
+					"Target":row[2].includes("%")? parseFloat(row[2])/100: parseFloat(row[2]),
+					Adjustment: 0.0
+				}
+				if(isNaN(newRow.Balance)||isNaN(newRow.Target)) isValid = false;
+				currentBalance.push(newRow);
+			} else {
+				myJspreadsheet.deleteRow(i);
 			}
-			return newRow;
 		});
-		
-		currentBalance.forEach((row) => {
-			row['Adjustment'] = 0.0
-		});
-		
-		// spreadsheetElement.textContent = '';
-		currentBalance = invest(currentBalance, inOut, 1000000);
-		console.log("currentBalance", currentBalance);
-		myJspreadsheet.setData(currentBalance.map((row) => {
-			let newRow = [row.Ticker, row.Balance.toString(), (row.Target*100).toString(), row.Sort, row.Initial, row.Additional, row.Adjustment, row.Percent, row.DeltaPercent, row.PercentToTarget, row.TotalInvestment];
-			return newRow;
-		}));
-		downloadButton.style.display = "unset";
+		console.log("pre-computed", currentBalance);
+		if(isValid) {
+			currentBalance = invest(currentBalance, inOut, 1000000);
+			currentBalance.sort((a,b) => {
+				if(a.Ticker<b.Ticker) return -1;
+				else if(a.Ticker>b.Ticker) return 1;
+				else return 0;
+			})
+			console.log("currentBalance", currentBalance);
+			myJspreadsheet.setData(currentBalance.map((row) => {
+				let newRow = [row.Ticker, row.Balance.toString(), row.Target.toString(), row.Adjustment];
+				return newRow;
+			}));
+			downloadButton.style.display = "unset";
+		} else {
+			this.alert("invalid input");
+		}
 	});
 
 	downloadButton.addEventListener("click", (e) => {

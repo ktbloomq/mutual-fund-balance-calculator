@@ -143,7 +143,7 @@ window.addEventListener('load', function () {
 		currentBalance = invest(currentBalance, inOut, 1000000);
 		console.log("currentBalance", currentBalance);
 		myJspreadsheet.setData(currentBalance.map((row) => {
-			let newRow = [row.Ticker, row.Balance.toString(), row.Target.toString(), row.Sort, row.Initial, row.Additional, row.Adjustment, row.Percent, row.DeltaPercent, row.PercentToTarget, row.TotalInvestment];
+			let newRow = [row.Ticker, row.Balance.toString(), (row.Target*100).toString(), row.Sort, row.Initial, row.Additional, row.Adjustment, row.Percent, row.DeltaPercent, row.PercentToTarget, row.TotalInvestment];
 			return newRow;
 		}));
 		downloadButton.style.display = "unset";

@@ -27,7 +27,19 @@ function single_investment(balance,base,direction,remaining_amt,depth) {
 	df = df.map((row) => {
 		row.Percent = (row.Balance + row.Adjustment) / (sum(col(df,"Balance")) + sum(col(df,"Adjustment")) + remaining_amt*direction);
 		row.DeltaPercent = (row.Percent - row.Target) * direction;
-		row.PercentToTarget = (row.Target>0 ? row.DeltaPercent/row.Target : (row.Percent>0 ? (1+row.Percent)*direction : 2.0));
+
+		// Calculate the balance and total balance for rows that have a target of zero so that the balance ratios can be maintained
+		row.ZeroTargetBalance = row.Target === 0 ? row.Balance : 0;
+		return row;
+	});
+	let ZeroTargetTotal = sum(col(df,"ZeroTargetBalance"));
+
+	df = df.map((row) => {
+		// Use percent over/under target for fair share, 
+		// if target is zero use balance ratio as the target shared between all zero target items 
+		// prioritizing zero target funds first. 
+		row.PercentToTarget = (row.Target>0 ? row.DeltaPercent/row.Target : 
+			(row.Percent>0 ? (row.DeltaPercent/(row.ZeroTargetBalance/ZeroTargetTotal))-100 : 2.0));
 		return row;
 	});
 	//sort by percent to target
